@@ -1,0 +1,3 @@
+#ifndef __PEOPLEDATA_H_INDLUDED__
+#define __PEOPLEDATA_H_INCLUDED__
+

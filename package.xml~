@@ -1,0 +1,26 @@
+<package>
+  <name>ground_based_rgbd_people_detector</name>
+  <version>0.1.0</version>
+  <description>People detection using a ros package with sourcecode imported from a pcl tutorial code </description>
+  <author email="andreas.lofman@hotmail.com">Andreas Löfman</author>
+  <maintainer email="andreas.lofman@hotmail.com">Andreas Löfman</maintainer>
+  <license>BSD</license>
+
+  <url></url>
+
+
+  <build_depend>rviz</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>pcl</build_depend>
+  <build_depend>message_generation</build_depend>
+  
+ 
+
+  <run_depend>rviz</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>pcl</run_depend>
+  <run_depend>message_runtime</run_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>
