@@ -59,6 +59,8 @@
 #include "std_msgs/Float32.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/String.h"
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 //#include <ground_based_rgbd_people_detector/peopledata.h>
 
 typedef pcl::PointXYZRGBA PointT;
@@ -137,6 +139,7 @@ int main (int argc, char** argv)
   ros::Publisher z_koords_pub=nh.advertise<std_msgs::Float32MultiArray>("ground_based_rgbd_people_detector/z_koords",1000);
   ros::Publisher x_koords_pub=nh.advertise<std_msgs::Float32MultiArray>("ground_based_rgbd_people_detector/x_koords",1000);
   ros::Publisher y_koord_pub=nh.advertise<std_msgs::Float32MultiArray>("ground_based_rgbd_people_detector/y_koords",1000);
+ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",1000);
   //ros::Publisher peopledata_pub= nh.advertise<ground_based_rgbd_people_detector::peopledata>("ground_based_rgbd_people_detector/peopledata",1000);
 
   //ros::Publisher pub= nh.advertise<std::vector<pcl::people::PersonCluster<PointT> > >("people_detection/person_cluster", 1000); //Den verkar inte vilja göra en publisher av denna typ, ger kompileringsfel
@@ -167,6 +170,9 @@ int main (int argc, char** argv)
 	y_koords.layout.dim[0].size=10;
 	y_koords.layout.dim[0].stride=10;
 	y_koords.layout.data_offset=0;
+	
+  visualization_msgs::MarkerArray markers;
+  visualization_msgs::Marker marker;
 	
   // Read if some parameters are passed from command line:
   pcl::console::parse_argument (argc, argv, "--svm", svm_filename);
@@ -275,18 +281,46 @@ int main (int argc, char** argv)
 	x_koords.data.clear();
 	z_koords.data.clear();
 	y_koords.data.clear();
+	markers.markers.clear();
       while(l>0){
+	marker.points.clear();
+	marker.action=3;
+	//Initiate marker
+	marker.header.frame_id= "camera_link";
+	marker.header.stamp=ros::Time();
+	marker.ns="people";
+	marker.id=l-1;
+	marker.lifetime=ros::Duration(0.1);
+	marker.type=visualization_msgs::Marker::CYLINDER;
+	marker.action=visualization_msgs::Marker::ADD;
+	marker.pose.position.x=clusters[l-1].getCenter()[0];
+	marker.pose.position.y=clusters[l-1].getCenter()[2];
+	marker.pose.position.z=-clusters[l-1].getCenter()[1];
+	marker.pose.orientation.x=0.0;
+	marker.pose.orientation.y=0.0;
+	marker.pose.orientation.z=0.0;
+	marker.pose.orientation.w=1.0;
+	marker.scale.x=0.5;
+	marker.scale.y=0.5;
+	marker.scale.z=1.8;
+	marker.color.a=1.0;
+	marker.color.r=255.0;
+	marker.color.g=0.0;
+	marker.color.b=0.0;
+	
 	x_koords.data.push_back(clusters[l-1].getBottom()[0]);
 	z_koords.data.push_back(clusters[l-1].getBottom()[2]);
 	y_koords.data.push_back(clusters[l-1].getBottom()[1]);
 	//ROS_INFO_STREAM("Distance of person "<<l<< ": "<<clusters[l-1].getDistance());
+	markers.markers.push_back(marker);
 	l--;
       }
       if(k>0){
       //peopledata_pub.publish(Peopledata);
       z_koords_pub.publish(z_koords);	
       x_koords_pub.publish(x_koords);
-      y_koord_pub.publish(y_koords);	
+      y_koord_pub.publish(y_koords);
+      markers_pub.publish(markers);	
 	ros::spinOnce();
 	//ROS_INFO_STREAM("Publishing koordinates!");
 	}
