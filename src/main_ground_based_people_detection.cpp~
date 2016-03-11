@@ -54,13 +54,11 @@
 #include <pcl/common/time.h>
 #include <ros/ros.h>
 #include <pcl/people/person_cluster.h>
-#include "std_msgs/MultiArrayLayout.h"
-#include "std_msgs/MultiArrayDimension.h"
-#include "std_msgs/Float32.h"
-#include "std_msgs/Float32MultiArray.h"
 #include "std_msgs/String.h"
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Pose.h>
 //#include <ground_based_rgbd_people_detector/peopledata.h>
 
 typedef pcl::PointXYZRGBA PointT;
@@ -136,40 +134,12 @@ int main (int argc, char** argv)
   //Create Node & Publisher for ROS-integration
   ros::init (argc, argv, "people_detection");
   ros::NodeHandle nh;
-  ros::Publisher z_koords_pub=nh.advertise<std_msgs::Float32MultiArray>("ground_based_rgbd_people_detector/z_koords",1000);
-  ros::Publisher x_koords_pub=nh.advertise<std_msgs::Float32MultiArray>("ground_based_rgbd_people_detector/x_koords",1000);
-  ros::Publisher y_koord_pub=nh.advertise<std_msgs::Float32MultiArray>("ground_based_rgbd_people_detector/y_koords",1000);
-ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",1000);
-  //ros::Publisher peopledata_pub= nh.advertise<ground_based_rgbd_people_detector::peopledata>("ground_based_rgbd_people_detector/peopledata",1000);
-
-  //ros::Publisher pub= nh.advertise<std::vector<pcl::people::PersonCluster<PointT> > >("people_detection/person_cluster", 1000); //Den verkar inte vilja göra en publisher av denna typ, ger kompileringsfel
-	//Testa att istället definera en ny messagetyp som består av avstånd och vinkel till personer? (Alt. skicka över allt i form av int)
-  //ground_based_rgbd_people_detector::peopledata Peopledata;
-  
-  //Detta fungerade inte heller, kostigheter med header-filen. Gör istället 2 stycken publishers av typ float...
+	ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",1000);
+	ros::Publisher Poses_pub=nh.advertise<geometry_msgs::PoseArray>("ground_based_rgbd_people_detector/PeoplePoses",1000);
 
 //Konstruera arrays för publish
-  std_msgs::Float32MultiArray x_koords;
-  std_msgs::Float32MultiArray z_koords;
-  std_msgs::Float32MultiArray y_koords;
-	x_koords.layout.dim.push_back(std_msgs::MultiArrayDimension());
-	x_koords.layout.dim[0].label="Row";
-	x_koords.layout.dim[0].size=10;
-	x_koords.layout.dim[0].stride=10;
-	x_koords.layout.data_offset=0;
-
-
-	z_koords.layout.dim.push_back(std_msgs::MultiArrayDimension());
-	z_koords.layout.dim[0].label="Row";
-	z_koords.layout.dim[0].size=10;
-	z_koords.layout.dim[0].stride=10;
-	z_koords.layout.data_offset=0;
-
-	y_koords.layout.dim.push_back(std_msgs::MultiArrayDimension());
-	y_koords.layout.dim[0].label="Row";
-	y_koords.layout.dim[0].size=10;
-	y_koords.layout.dim[0].stride=10;
-	y_koords.layout.data_offset=0;
+  geometry_msgs::PoseArray PeoplePoses;
+  geometry_msgs::Pose Pose;
 	
   visualization_msgs::MarkerArray markers;
   visualization_msgs::Marker marker;
@@ -278,14 +248,12 @@ ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visual
       std::cout << k << " people found" << std::endl;
       viewer.spinOnce();
       int l=k;
-	x_koords.data.clear();
-	z_koords.data.clear();
-	y_koords.data.clear();
+	PeoplePoses.poses.clear();
 	markers.markers.clear();
       while(l>0){
 	marker.points.clear();
-	marker.action=3;
-	//Initiate marker
+	marker.action=3; //To definetly make sure the marker is gone, meaning we need to create it again
+	//(Re)Initiate marker
 	marker.header.frame_id= "camera_link";
 	marker.header.stamp=ros::Time();
 	marker.ns="people";
@@ -293,7 +261,7 @@ ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visual
 	marker.lifetime=ros::Duration(0.1);
 	marker.type=visualization_msgs::Marker::CYLINDER;
 	marker.action=visualization_msgs::Marker::ADD;
-	marker.pose.position.x=-clusters[l-1].getCenter()[0];
+	marker.pose.position.x=clusters[l-1].getCenter()[0];
 	marker.pose.position.y=clusters[l-1].getCenter()[2];
 	marker.pose.position.z=-clusters[l-1].getCenter()[1];
 	marker.pose.orientation.x=0.0;
@@ -308,19 +276,17 @@ ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visual
 	marker.color.g=0.0;
 	marker.color.b=0.0;
 	
-	x_koords.data.push_back(clusters[l-1].getBottom()[0]);
-	z_koords.data.push_back(clusters[l-1].getBottom()[2]);
-	y_koords.data.push_back(clusters[l-1].getBottom()[1]);
+	Pose.position.x=clusters[l-1].getBottom()[0];
+	Pose.position.y=clusters[l-1].getBottom()[1];
+	Pose.position.y=clusters[l-1].getBottom()[2];
 	//ROS_INFO_STREAM("Distance of person "<<l<< ": "<<clusters[l-1].getDistance());
 	markers.markers.push_back(marker);
+	PeoplePoses.poses.push_back(Pose);
 	l--;
       }
       if(k>0){
-      //peopledata_pub.publish(Peopledata);
-      z_koords_pub.publish(z_koords);	
-      x_koords_pub.publish(x_koords);
-      y_koord_pub.publish(y_koords);
-      markers_pub.publish(markers);	
+      markers_pub.publish(markers);
+      Poses_pub.publish(PeoplePoses);	
 	ros::spinOnce();
 	//ROS_INFO_STREAM("Publishing koordinates!");
 	}
