@@ -59,10 +59,18 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Pose.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl/conversions.h>
+#include <pcl/PCLPointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_types.h>
+#include <pcl_ros/transforms.h>
 //#include <ground_based_rgbd_people_detector/peopledata.h>
 
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
+ bool new_cloud_available_flag = false;
+ PointCloudT::Ptr cloud (new PointCloudT);
 
 // PCL viewer //
 pcl::visualization::PCLVisualizer viewer("PCL Viewer");
@@ -85,6 +93,18 @@ int print_help()
   return 0;
 }
 
+void OpenniCallback(const boost::shared_ptr<const sensor_msgs::PointCloud2>& msg)
+{ //However this function is never called! Why?
+  pcl::PCLPointCloud2 pcl_pc;
+  cloud_mutex.lock ();    // for not overwriting the point cloud from another thread
+  new_cloud_available_flag = true;
+  pcl_conversions::toPCL(*msg, pcl_pc);
+  //pcl::PointCloud<pcl::PointXYZRGBA>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::fromPCLPointCloud2(pcl_pc,*cloud); 
+  //*cloud=*temp_cloud;	
+  cloud_mutex.unlock ();
+}
+/*
 void cloud_cb_ (const PointCloudT::ConstPtr &callback_cloud, PointCloudT::Ptr& cloud,
     bool* new_cloud_available_flag)
 {
@@ -93,7 +113,7 @@ void cloud_cb_ (const PointCloudT::ConstPtr &callback_cloud, PointCloudT::Ptr& c
   *new_cloud_available_flag = true;
   cloud_mutex.unlock ();
 }
-
+*/
 struct callback_args{
   // structure used to pass arguments to the callback function
   PointCloudT::Ptr clicked_points_3d;
@@ -136,6 +156,7 @@ int main (int argc, char** argv)
   ros::NodeHandle nh;
 	ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",1000);
 	ros::Publisher Poses_pub=nh.advertise<geometry_msgs::PoseArray>("ground_based_rgbd_people_detector/PeoplePoses",1000);
+	ros::Subscriber Openni_sub=nh.subscribe("camera/depth_registered/points",1000,OpenniCallback);
 
 //Konstruera arrays för publish
   geometry_msgs::PoseArray PeoplePoses;
@@ -150,18 +171,22 @@ int main (int argc, char** argv)
   pcl::console::parse_argument (argc, argv, "--min_h", min_height);
   pcl::console::parse_argument (argc, argv, "--max_h", max_height);
 
+
   // Read Kinect live stream:
-  PointCloudT::Ptr cloud (new PointCloudT);
-  bool new_cloud_available_flag = false;
-  pcl::Grabber* interface = new pcl::OpenNIGrabber();
+ // PointCloudT::Ptr cloud (new PointCloudT);
+  /*bool new_cloud_available_flag = false;
+  pcl::Grabber* interface = new pcl::OpenNIGrabber(); //Probably this line that makes shit going down when trying to run openni at the same time
   boost::function<void (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
       boost::bind (&cloud_cb_, _1, cloud, &new_cloud_available_flag);
   interface->registerCallback (f);
-  interface->start ();
+  interface->start (); */
+//Remove most of the above and replace with a subscriber with cloud_cb as callback?
 
   // Wait for the first frame:
-  while(!new_cloud_available_flag) 
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+  while(!new_cloud_available_flag) {
+	std::cout << "Waiting for first frame..."<< std::endl;
+    boost::this_thread::sleep(boost::posix_time::milliseconds(1)); 
+	ros::spinOnce();}
   new_cloud_available_flag = false;
 
   cloud_mutex.lock ();    // for not overwriting the point cloud
@@ -170,6 +195,7 @@ int main (int argc, char** argv)
   pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
   viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
   viewer.setCameraPosition(0,0,-2,0,-1,0,0);
+
 
   // Add point picking callback to viewer:
   struct callback_args cb_args;
@@ -218,12 +244,12 @@ int main (int argc, char** argv)
   // Main loop:
   while (!viewer.wasStopped())
   {
+	ros::spinOnce();
     if (new_cloud_available_flag && cloud_mutex.try_lock ())    // if a new cloud is available
     {
       new_cloud_available_flag = false;
-
-      // Perform people detection on the new cloud:
       std::vector<pcl::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
+      // Perform people detection on the new cloud:
       people_detector.setInputCloud(cloud);
       people_detector.setGround(ground_coeffs);                    // set floor coefficients
       people_detector.compute(clusters);                           // perform people detection
@@ -231,17 +257,17 @@ int main (int argc, char** argv)
       ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
 
       // Draw cloud and people bounding boxes in the viewer:
-      viewer.removeAllPointClouds();
-      viewer.removeAllShapes();
-      pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
-      viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
+      //viewer.removeAllPointClouds();
+      //viewer.removeAllShapes();
+      //pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
+      //viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
       unsigned int k = 0;
       for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
       {
         if(it->getPersonConfidence() > min_confidence)             // draw only people with confidence above a threshold
         {
           // draw theoretical person bounding box in the PCL viewer:
-          it->drawTBoundingBox(viewer, k);
+         // it->drawTBoundingBox(viewer, k);
           k++;
         }
       }
@@ -258,7 +284,7 @@ int main (int argc, char** argv)
 	marker.header.stamp=ros::Time();
 	marker.ns="people";
 	marker.id=l-1;
-	marker.lifetime=ros::Duration(0.1);
+	marker.lifetime=ros::Duration(0.15);
 	marker.type=visualization_msgs::Marker::CYLINDER;
 	marker.action=visualization_msgs::Marker::ADD;
 	marker.pose.position.x=clusters[l-1].getCenter()[0];
@@ -287,7 +313,6 @@ int main (int argc, char** argv)
       if(k>0){
       markers_pub.publish(markers);
       Poses_pub.publish(PeoplePoses);	
-	ros::spinOnce();
 	//ROS_INFO_STREAM("Publishing koordinates!");
 	}
       // Display average framerate:
