@@ -65,7 +65,6 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <pcl_ros/transforms.h>
-//#include <ground_based_rgbd_people_detector/peopledata.h>
 
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
@@ -99,21 +98,10 @@ void OpenniCallback(const boost::shared_ptr<const sensor_msgs::PointCloud2>& msg
   cloud_mutex.lock ();    // for not overwriting the point cloud from another thread
   new_cloud_available_flag = true;
   pcl_conversions::toPCL(*msg, pcl_pc);
-  //pcl::PointCloud<pcl::PointXYZRGBA>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::fromPCLPointCloud2(pcl_pc,*cloud); 
-  //*cloud=*temp_cloud;	
   cloud_mutex.unlock ();
 }
-/*
-void cloud_cb_ (const PointCloudT::ConstPtr &callback_cloud, PointCloudT::Ptr& cloud,
-    bool* new_cloud_available_flag)
-{
-  cloud_mutex.lock ();    // for not overwriting the point cloud from another thread
-  *cloud = *callback_cloud;
-  *new_cloud_available_flag = true;
-  cloud_mutex.unlock ();
-}
-*/
+
 struct callback_args{
   // structure used to pass arguments to the callback function
   PointCloudT::Ptr clicked_points_3d;
@@ -158,7 +146,7 @@ int main (int argc, char** argv)
 	ros::Publisher Poses_pub=nh.advertise<geometry_msgs::PoseArray>("ground_based_rgbd_people_detector/PeoplePoses",1000);
 	ros::Subscriber Openni_sub=nh.subscribe("camera/depth_registered/points",1000,OpenniCallback);
 
-//Konstruera arrays för publish
+//Define arrays for publish
   geometry_msgs::PoseArray PeoplePoses;
   geometry_msgs::Pose Pose;
 	
@@ -170,17 +158,6 @@ int main (int argc, char** argv)
   pcl::console::parse_argument (argc, argv, "--conf", min_confidence);
   pcl::console::parse_argument (argc, argv, "--min_h", min_height);
   pcl::console::parse_argument (argc, argv, "--max_h", max_height);
-
-
-  // Read Kinect live stream:
- // PointCloudT::Ptr cloud (new PointCloudT);
-  /*bool new_cloud_available_flag = false;
-  pcl::Grabber* interface = new pcl::OpenNIGrabber(); //Probably this line that makes shit going down when trying to run openni at the same time
-  boost::function<void (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
-      boost::bind (&cloud_cb_, _1, cloud, &new_cloud_available_flag);
-  interface->registerCallback (f);
-  interface->start (); */
-//Remove most of the above and replace with a subscriber with cloud_cb as callback?
 
   // Wait for the first frame:
   while(!new_cloud_available_flag) {
@@ -256,7 +233,7 @@ int main (int argc, char** argv)
 
       ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
 
-      // Draw cloud and people bounding boxes in the viewer:
+      // Draw cloud and people bounding boxes in the viewer (Uncomment for debugging, vizualisation done in rviz instead):
       //viewer.removeAllPointClouds();
       //viewer.removeAllShapes();
       //pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
@@ -268,7 +245,7 @@ int main (int argc, char** argv)
       {
         if(it->getPersonConfidence() > min_confidence)             // draw only people with confidence above a threshold
         {
-          // draw theoretical person bounding box in the PCL viewer:
+          // draw theoretical person bounding box in the PCL viewer (optional, used for debugging):
           //it->drawTBoundingBox(viewer, k);
 	  marker.points.clear();
 	marker.action=3; //To definetly make sure the marker is gone, meaning we need to create it again
@@ -298,7 +275,6 @@ int main (int argc, char** argv)
 	Pose.position.x=it->getBottom()[0];
 	Pose.position.y=it->getBottom()[1];
 	Pose.position.y=it->getBottom()[2];
-	//ROS_INFO_STREAM("Distance of person "<<l<< ": "<<clusters[l-1].getDistance());
 	markers.markers.push_back(marker);
 	PeoplePoses.poses.push_back(Pose);
           k++;
@@ -309,7 +285,6 @@ int main (int argc, char** argv)
       if(k>0){
       markers_pub.publish(markers);
       Poses_pub.publish(PeoplePoses);	
-	//ROS_INFO_STREAM("Publishing koordinates!");
 	}
       // Display average framerate:
       if (++count == 30)

@@ -257,10 +257,10 @@ int main (int argc, char** argv)
       ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
 
       // Draw cloud and people bounding boxes in the viewer:
-      viewer.removeAllPointClouds();
-      viewer.removeAllShapes();
-      pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
-      viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
+      //viewer.removeAllPointClouds();
+      //viewer.removeAllShapes();
+      //pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
+      //viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
       unsigned int k = 0;
 	PeoplePoses.poses.clear();
 	markers.markers.clear();
@@ -269,7 +269,7 @@ int main (int argc, char** argv)
         if(it->getPersonConfidence() > min_confidence)             // draw only people with confidence above a threshold
         {
           // draw theoretical person bounding box in the PCL viewer:
-          it->drawTBoundingBox(viewer, k);
+          //it->drawTBoundingBox(viewer, k);
 	  marker.points.clear();
 	marker.action=3; //To definetly make sure the marker is gone, meaning we need to create it again
 	//(Re)Initiate marker
