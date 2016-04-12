@@ -254,7 +254,7 @@ int main (int argc, char** argv)
 	marker.header.stamp=ros::Time();
 	marker.ns="people";
 	marker.id=k;
-	marker.lifetime=ros::Duration(0.15);
+	marker.lifetime=ros::Duration(0.3);
 	marker.type=visualization_msgs::Marker::CYLINDER;
 	marker.action=visualization_msgs::Marker::ADD;
 	marker.pose.position.x=it->getCenter()[0];
@@ -281,7 +281,7 @@ int main (int argc, char** argv)
         }
       }
       std::cout << k << " people found" << std::endl;
-      viewer.spinOnce();
+      //viewer.spinOnce();
       if(k>0){
       markers_pub.publish(markers);
       Poses_pub.publish(PeoplePoses);	
