@@ -268,9 +268,9 @@ int main (int argc, char** argv)
 	marker.lifetime=ros::Duration(0.3);
 	marker.type=visualization_msgs::Marker::CYLINDER;
 	marker.action=visualization_msgs::Marker::ADD;
-	marker.pose.position.x=it->getCenter()[0];
-	marker.pose.position.y=it->getCenter()[2];
-	marker.pose.position.z=-(it->getCenter()[1]);
+	marker.pose.position.x=it->getCenter()[2];
+	marker.pose.position.y=-(it->getCenter()[0]);
+	marker.pose.position.z=it->getCenter()[1];
 	marker.pose.orientation.x=0.0;
 	marker.pose.orientation.y=0.0;
 	marker.pose.orientation.z=0.0;
