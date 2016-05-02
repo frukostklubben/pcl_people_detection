@@ -102,9 +102,9 @@ void OpenniCallback(const boost::shared_ptr<const sensor_msgs::PointCloud2>& msg
 { 
   pcl::PCLPointCloud2 pcl_pc;
   cloud_mutex.lock ();    // for not overwriting the point cloud from another thread
-  new_cloud_available_flag = true;
-  pcl_conversions::toPCL(*msg, pcl_pc);
-  pcl::fromPCLPointCloud2(pcl_pc,*cloud); 
+  new_cloud_available_flag = true; //New cloud available
+  pcl_conversions::toPCL(*msg, pcl_pc); //from Pointcloud2 to PCLPointCloud2
+  pcl::fromPCLPointCloud2(pcl_pc,*cloud); //from PCLPointCloud2 to PointCloudT::Ptr
   cloud_mutex.unlock ();
 }
 
@@ -116,7 +116,7 @@ struct callback_args{
   
 void
 pp_callback (const pcl::visualization::PointPickingEvent& event, void* args)
-{
+{ //Callback function for the 3 points-clicking
   struct callback_args* data = (struct callback_args *)args;
   if (event.getPointIndex () == -1)
     return;
@@ -137,30 +137,30 @@ int main (int argc, char** argv)
         return print_help();
 
   // Algorithm parameters:
-  std::string svm_filename = "/home/andreas/ROS-workspace/src/pcl_people_detection/src/svm_file.yaml";
-  float min_confidence = -1.0;
-  float min_height = 1.3;
-  float max_height = 2.3;
-  float voxel_size = 0.06;
-  float kinectheight=0;
+  std::string svm_filename = "/home/andreas/ROS-workspace/src/pcl_people_detection/src/svm_file.yaml"; //Insert where you keep the .yaml file with svm-data
+  float min_confidence = -1.0; //Minimal confidence that a personcluster actually is a person
+  float min_height = 1.3; //Min. people-height for detection
+  float max_height = 2.3; //Ditto for maximal
+  float voxel_size = 0.06; //Dont know
+  float kinectheight=0; //Height of the kinect over ground
   Eigen::Matrix3f rgb_intrinsics_matrix;
   rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
 
-  //Create Node & Publisher for ROS-integration
+  //Create Node, Publishers and Subscribers for ROS-integration
   ros::init (argc, argv, "people_detection");
   ros::NodeHandle nh;
 	ros::Publisher markers_pub=nh.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
-	ros::Publisher Poses_pub=nh.advertise<geometry_msgs::PoseArray>("ground_based_rgbd_people_detector/PeoplePoses",10);
+	ros::Publisher Poses_pub=nh.advertise<geometry_msgs::PoseArray>("ground_based_rgbd_people_detector/PeoplePoses",10); //Aren't used with Projector-mapping, but can still come in handy someday
 	ros::Subscriber Openni_sub=nh.subscribe("camera/depth_registered/points",10,OpenniCallback);
 	ros::Publisher corners_pub=nh.advertise<std_msgs::Float64MultiArray>("ground_based_rgbd_people_detector/PeopleCorners",10);
 
-//Define arrays for publish
+//Define arrays for publishing
   geometry_msgs::PoseArray PeoplePoses;
   geometry_msgs::Pose Pose;
   visualization_msgs::MarkerArray markers;
   visualization_msgs::Marker marker;
   std_msgs::Float64MultiArray peoplecorners;
-  Eigen::MatrixXd eigenpeoplecorners(0,0);
+  Eigen::MatrixXd eigenpeoplecorners(0,0); //Used because simplicity (converted into Float64Multiarray later on
 
 	
   // Read if some parameters are passed from command line:
@@ -208,9 +208,9 @@ int main (int argc, char** argv)
   model_plane.computeModelCoefficients(clicked_points_indices,ground_coeffs);
   std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 
-  // Initialize new viewer:
-  pcl::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
-  viewer.setCameraPosition(0,0,-2,0,-1,0,0);
+  // Initialize new viewer (Uncomment for debugging)
+  //pcl::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
+  //viewer.setCameraPosition(0,0,-2,0,-1,0,0);
 
   // Create classifier for people detection:  
   pcl::people::PersonClassifier<pcl::RGB> person_classifier;
@@ -229,12 +229,12 @@ int main (int argc, char** argv)
   static double last = pcl::getTime ();
 
   // Main loop:
-  while (!viewer.wasStopped())
+  while (ros::ok())
   {
 	ros::spinOnce();
     if (new_cloud_available_flag && cloud_mutex.try_lock ())    // if a new cloud is available
     {
-      new_cloud_available_flag = false;
+      new_cloud_available_flag = false; //Not a new cloud anymore
       std::vector<pcl::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
       // Perform people detection on the new cloud:
       people_detector.setInputCloud(cloud);
@@ -248,11 +248,11 @@ int main (int argc, char** argv)
       //viewer.removeAllShapes();
       //pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
       //viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
-      unsigned int k = 0;
-	PeoplePoses.poses.clear();
+      unsigned int k = 0; //Keeping track of the people detected
+	PeoplePoses.poses.clear(); //Clearing arrays of old data
 	markers.markers.clear();
 	peoplecorners.data.clear();
-      for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
+      for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it) //Looping through all detected people-clusters
       {
         if(it->getPersonConfidence() > min_confidence)             // draw only people with confidence above a threshold
         {
@@ -260,7 +260,7 @@ int main (int argc, char** argv)
           //it->drawTBoundingBox(viewer, k);
 	  marker.points.clear();
 	marker.action=3; //To definetly make sure the marker is gone, meaning we need to create it again
-	//(Re)Initiate marker
+	//(Re)Initiate marker for rviz-visualisation
 	marker.header.frame_id= "camera_link";
 	marker.header.stamp=ros::Time();
 	marker.ns="people";
@@ -268,9 +268,9 @@ int main (int argc, char** argv)
 	marker.lifetime=ros::Duration(0.3);
 	marker.type=visualization_msgs::Marker::CYLINDER;
 	marker.action=visualization_msgs::Marker::ADD;
-	marker.pose.position.x=it->getCenter()[2];
-	marker.pose.position.y=-(it->getCenter()[0]);
-	marker.pose.position.z=it->getCenter()[1];
+	marker.pose.position.x=it->getCenter()[2]; //z
+	marker.pose.position.y=-(it->getCenter()[0]); //x
+	marker.pose.position.z=it->getCenter()[1]; //y because rviz axis and kinect dont get along
 	marker.pose.orientation.x=0.0;
 	marker.pose.orientation.y=0.0;
 	marker.pose.orientation.z=0.0;
@@ -278,21 +278,21 @@ int main (int argc, char** argv)
 	marker.scale.x=0.5;
 	marker.scale.y=0.5;
 	marker.scale.z=1.8;
-	marker.color.a=1.0;
+	marker.color.a=0.5;
 	marker.color.r=255.0;
 	marker.color.g=0.0;
 	marker.color.b=0.0;
 	
-	Pose.position.x=it->getBottom()[0];
-	Pose.position.y=it->getBottom()[1];
-	Pose.position.z=it->getBottom()[2];
-	markers.markers.push_back(marker);
-	PeoplePoses.poses.push_back(Pose);
+	Pose.position.x=it->getBottom()[0]; //x
+	Pose.position.y=it->getBottom()[1]; //y
+	Pose.position.z=it->getBottom()[2]; //z according to the kinect
+	markers.markers.push_back(marker); //Push back the markers into the array
+	PeoplePoses.poses.push_back(Pose); //Push back the poses into the array
 
-	eigenpeoplecorners.resize(k+1,13);
+	eigenpeoplecorners.resize(k+1,13); //Resize matrix for each new person detected and add 4 corners for each person (z-value is the same for all)
 	eigenpeoplecorners(k,0)=(it->getBottom()[0])-0.2;
 	eigenpeoplecorners(k,1)=(it->getBottom()[1])-0.2;
-	eigenpeoplecorners(k,2)=-kinectheight;
+	eigenpeoplecorners(k,2)=-kinectheight; //Because z=0 is the level of the kinect
 	
 	eigenpeoplecorners(k,3)=(it->getBottom()[0])-0.2;
 	eigenpeoplecorners(k,4)=(it->getBottom()[1])+0.2;
@@ -305,22 +305,22 @@ int main (int argc, char** argv)
 	eigenpeoplecorners(k,9)=(it->getBottom()[0])+0.2;
 	eigenpeoplecorners(k,10)=(it->getBottom()[1])+0.2;
 	eigenpeoplecorners(k,11)=-kinectheight;
-	eigenpeoplecorners(k,12)=100.0;
+	eigenpeoplecorners(k,12)=100.0; //Random identification so that frameworks knows what it's getting
 
-          k++;
+          k++; //Increase people-counter
         }
       }
 	
       std::cout << k << " people found" << std::endl;
-      //viewer.spinOnce();
-      if(k>0){
-      tf::matrixEigenToMsg(eigenpeoplecorners, peoplecorners);
+      //viewer.spinOnce(); //Also uncomment for debugging
+      if(k>0){ //Only publish if more than 1 people are detected
+      tf::matrixEigenToMsg(eigenpeoplecorners, peoplecorners); //convert eigen-matrix to something that can be published in ros
       markers_pub.publish(markers);
       Poses_pub.publish(PeoplePoses);
       corners_pub.publish(peoplecorners);
 	
 	}
-	eigenpeoplecorners.resize(0,0);
+	eigenpeoplecorners.resize(0,0); //Resize in order to clear data
       // Display average framerate:
       if (++count == 30)
       {
