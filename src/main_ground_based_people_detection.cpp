@@ -279,9 +279,9 @@ int main (int argc, char** argv)
 	marker.scale.y=0.5;
 	marker.scale.z=1.8;
 	marker.color.a=0.5;
-	marker.color.r=255.0;
+	marker.color.r=0.0;
 	marker.color.g=0.0;
-	marker.color.b=0.0;
+	marker.color.b=255.0;
 	
 	Pose.position.x=it->getBottom()[0]; //x
 	Pose.position.y=it->getBottom()[1]; //y
