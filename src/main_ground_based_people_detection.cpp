@@ -207,7 +207,9 @@ int main (int argc, char** argv)
   pcl::SampleConsensusModelPlane<PointT> model_plane(clicked_points_3d);
   model_plane.computeModelCoefficients(clicked_points_indices,ground_coeffs);
   std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
-
+	viewer.setPosition(0,0);
+	viewer.setSize(1,1);
+	viewer.close();
   // Initialize new viewer (Uncomment for debugging)
   //pcl::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
   //viewer.setCameraPosition(0,0,-2,0,-1,0,0);
@@ -289,7 +291,7 @@ int main (int argc, char** argv)
 	markers.markers.push_back(marker); //Push back the markers into the array
 	PeoplePoses.poses.push_back(Pose); //Push back the poses into the array
 
-	eigenpeoplecorners.resize(k+1,13); //Resize matrix for each new person detected and add 4 corners for each person (z-value is the same for all)
+	eigenpeoplecorners.resize(k+1,14); //Resize matrix for each new person detected and add 4 corners for each person (z-value is the same for all)
 	eigenpeoplecorners(k,0)=(it->getBottom()[0])-0.2;
 	eigenpeoplecorners(k,1)=(it->getBottom()[1])-0.2;
 	eigenpeoplecorners(k,2)=-kinectheight; //Because z=0 is the level of the kinect
@@ -306,7 +308,7 @@ int main (int argc, char** argv)
 	eigenpeoplecorners(k,10)=(it->getBottom()[1])+0.2;
 	eigenpeoplecorners(k,11)=-kinectheight;
 	eigenpeoplecorners(k,12)=100.0; //Random identification so that frameworks knows what it's getting
-
+	eigenpeoplecorners(k,13)=100.0; //Another random identification because why not
           k++; //Increase people-counter
         }
       }
