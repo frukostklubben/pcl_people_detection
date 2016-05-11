@@ -142,7 +142,7 @@ int main (int argc, char** argv)
   float min_height = 1.3; //Min. people-height for detection
   float max_height = 2.3; //Ditto for maximal
   float voxel_size = 0.06; //Dont know
-  float kinectheight=0; //Height of the kinect over ground
+  float kinectheight=0.92; //Height of the kinect over ground
   Eigen::Matrix3f rgb_intrinsics_matrix;
   rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
 
@@ -291,7 +291,7 @@ int main (int argc, char** argv)
 	markers.markers.push_back(marker); //Push back the markers into the array
 	PeoplePoses.poses.push_back(Pose); //Push back the poses into the array
 
-	eigenpeoplecorners.resize(k+1,13); //Resize matrix for each new person detected and add 4 corners for each person (z-value is the same for all)
+	eigenpeoplecorners.resize(k+1,14); //Resize matrix for each new person detected and add 4 corners for each person (z-value is the same for all)
 	eigenpeoplecorners(k,0)=(it->getBottom()[0])-0.2;
 	eigenpeoplecorners(k,1)=(it->getBottom()[1])-0.2;
 	eigenpeoplecorners(k,2)=-kinectheight; //Because z=0 is the level of the kinect
@@ -308,7 +308,7 @@ int main (int argc, char** argv)
 	eigenpeoplecorners(k,10)=(it->getBottom()[1])+0.2;
 	eigenpeoplecorners(k,11)=-kinectheight;
 	eigenpeoplecorners(k,12)=100.0; //Random identification so that frameworks knows what it's getting
-
+	eigenpeoplecorners(k,13)=100.0; //Another random identification because why not
           k++; //Increase people-counter
         }
       }

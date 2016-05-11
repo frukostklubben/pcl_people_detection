@@ -142,7 +142,7 @@ int main (int argc, char** argv)
   float min_height = 1.3; //Min. people-height for detection
   float max_height = 2.3; //Ditto for maximal
   float voxel_size = 0.06; //Dont know
-  float kinectheight=0; //Height of the kinect over ground
+  float kinectheight=0.92; //Height of the kinect over ground
   Eigen::Matrix3f rgb_intrinsics_matrix;
   rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
 
@@ -207,16 +207,16 @@ int main (int argc, char** argv)
   pcl::SampleConsensusModelPlane<PointT> model_plane(clicked_points_3d);
   model_plane.computeModelCoefficients(clicked_points_indices,ground_coeffs);
   std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
-	viewer.setPosition(0,0);
+	viewer.setPosition(0,0); //Annoying window of the old viewer is thus relocated and resized to 1x1 pixel
 	viewer.setSize(1,1);
-	viewer.close();
+	viewer.close(); //Doesn't close the window as excpected, but seems to make the window close as the process is terminated atleast
   // Initialize new viewer (Uncomment for debugging)
   //pcl::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
   //viewer.setCameraPosition(0,0,-2,0,-1,0,0);
 
   // Create classifier for people detection:  
   pcl::people::PersonClassifier<pcl::RGB> person_classifier;
-  person_classifier.loadSVMFromFile(svm_filename);   // load trained SVM
+  person_classifier.loadSVMFromFile(svm_filename);   // load trained SVM from file directory
 
   // People detection app initialization:
   pcl::people::GroundBasedPeopleDetectionApp<PointT> people_detector;    // people detection object
